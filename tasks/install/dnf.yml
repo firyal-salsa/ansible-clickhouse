@@ -22,7 +22,7 @@
   become: true
 
 - name: Install by YUM | Ensure clickhouse package installed (latest)
-  dnf:
+  yum:
     name: "{{ clickhouse_package }} "
     state: "{{ clickhouse_version }}"
     disable_gpg_check: true
@@ -31,7 +31,7 @@
   when: clickhouse_version == 'latest'
 
 - name: Install by YUM | Ensure clickhouse package installed (version {{ clickhouse_version }})
-  dnf:
+  yum:
     name: "{{ clickhouse_package | map('regex_replace', '$', '-' + clickhouse_version) | list }}"
     state: present
     disable_gpg_check: true
