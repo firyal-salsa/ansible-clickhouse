@@ -1,7 +1,4 @@
 ---
-#Main installation actions
-#https://clickhouse.com/docs/en/getting-started/#installation
-
 - name: Install by YUM | Ensure clickhouse repo GPG key imported
   rpm_key:
     state: present
@@ -21,20 +18,26 @@
   tags: [install]
   become: true
 
-- name: Install by YUM | Ensure clickhouse package installed (latest)
-  yum:
-    name: "{{ clickhouse_package }} "
-    state: "{{ clickhouse_version }}"
-    disable_gpg_check: true
-  become: true
+- name: Check if clickhouse is installed
+  command: rpm -q {{ item }}
+  register: clickhouse_check
+  ignore_errors: true
+  changed_when: false
+  with_items: "{{ clickhouse_package }}"
   tags: [install]
-  when: clickhouse_version == 'latest'
 
-- name: Install by YUM | Ensure clickhouse package installed (version {{ clickhouse_version }})
-  yum:
-    name: "{{ clickhouse_package | map('regex_replace', '$', '-' + clickhouse_version) | list }}"
-    state: present
-    disable_gpg_check: true
+- name: Install by YUM | Install clickhouse package (latest)
+  command: dnf install -y {{ clickhouse_package | join(' ') }}
   become: true
+  when: 
+    - clickhouse_version == 'latest'
+    - clickhouse_check.results | map(attribute='rc') | select('eq', 1) | list | length > 0
   tags: [install]
-  when: clickhouse_version != 'latest'
+
+- name: Install by YUM | Install clickhouse package (specific version)
+  command: dnf install -y {{ clickhouse_package | map('regex_replace', '$', '-' + clickhouse_version) | join(' ') }}
+  become: true
+  when: 
+    - clickhouse_version != 'latest'
+    - clickhouse_check.results | map(attribute='rc') | select('eq', 1) | list | length > 0
+  tags: [install]
